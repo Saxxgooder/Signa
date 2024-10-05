@@ -1,0 +1,129 @@
+getgenv().macro.shakeIntensity = 5
+getgenv().macro.shakeFrequency = 0.1
+getgenv().macro.AnimationPack = true
+
+if getgenv().Sentinel.Macro ~= "ON" then
+    return
+end
+
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+if not UserInputService.TouchEnabled then
+    return
+end
+
+local ShiftlockStarterGui = Instance.new("ScreenGui")
+ShiftlockStarterGui.Name = "ShiftlockStarterGui"
+ShiftlockStarterGui.Parent = game.CoreGui
+ShiftlockStarterGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ShiftlockStarterGui.ResetOnSpawn = false
+
+local ImageButton = Instance.new("ImageButton")
+ImageButton.Name = "ImageButton"
+ImageButton.Parent = ShiftlockStarterGui
+ImageButton.Active = true
+ImageButton.Draggable = true
+ImageButton.BackgroundTransparency = 1.000
+ImageButton.Size = UDim2.new(0, 80, 0, 80)
+ImageButton.Image = "rbxasset://textures/ui/mouseLock_off@2x.png"
+ImageButton.Position = UDim2.new(0.5, -25, 0.5, -25)
+
+local SetPositionButton = Instance.new("TextButton")
+SetPositionButton.Name = "SetPositionButton"
+SetPositionButton.Parent = ShiftlockStarterGui
+SetPositionButton.Size = UDim2.new(0, 100, 0, 40)
+SetPositionButton.Position = UDim2.new(0.5, 1000, 0, 1000)
+SetPositionButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SetPositionButton.BorderSizePixel = 0
+SetPositionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SetPositionButton.TextSize = 14
+SetPositionButton.Font = Enum.Font.GothamBold
+SetPositionButton.Text = "Set Position"
+SetPositionButton.TextStrokeTransparency = 0.5
+
+local uiCornerSetPosition = Instance.new("UICorner", SetPositionButton)
+uiCornerSetPosition.CornerRadius = UDim.new(0.5, 0)
+
+local uiStrokeSetPosition = Instance.new("UIStroke", SetPositionButton)
+uiStrokeSetPosition.Thickness = 2
+uiStrokeSetPosition.Color = Color3.fromRGB(255, 255, 255)
+uiStrokeSetPosition.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local shiftLockEnabled = false
+local intensity = math.rad(getgenv().macro.shakeIntensity)
+local shakeFrequency = getgenv().macro.shakeFrequency
+local toggleTime = 0
+local facingRight = true
+
+local function UpdateOrientation()
+    if shiftLockEnabled then
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = character.HumanoidRootPart
+            local cameraCFrame = camera.CFrame
+            local lookVector = camera.CFrame.LookVector
+
+            rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + Vector3.new(lookVector.X, 0, lookVector.Z))
+
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.MoveDirection.Magnitude > 0 then
+                local moveDirection = humanoid.MoveDirection
+                local backward = moveDirection:Dot(camera.CFrame.LookVector) < 0
+
+                if backward then
+                    local currentTime = tick()
+
+                    if currentTime - toggleTime > shakeFrequency then
+                        facingRight = not facingRight
+                        toggleTime = currentTime
+                    end
+
+                    local angle = facingRight and intensity or -intensity
+                    rootPart.CFrame = rootPart.CFrame * CFrame.Angles(0, angle, 0)
+                end
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(UpdateOrientation)
+
+local function UpdateImage(state)
+    if state == "ON" then
+        ImageButton.Image = "rbxasset://textures/ui/mouseLock_on@2x.png"
+    else
+        ImageButton.Image = "rbxasset://textures/ui/mouseLock_off@2x.png"
+    end
+end
+
+local function EnableShiftlock()
+    UpdateImage("ON")
+    shiftLockEnabled = true
+end
+
+local function DisableShiftlock()
+    UpdateImage("OFF")
+    shiftLockEnabled = false
+end
+
+local function onButtonTapped()
+    if not shiftLockEnabled then
+        EnableShiftlock()
+    else
+        DisableShiftlock()
+    end
+end
+
+if ImageButton:FindFirstChildOfClass("TouchTap") then
+    ImageButton.TouchTap:Connect(onButtonTapped)
+else
+    ImageButton.MouseButton1Click:Connect(onButtonTapped)
+end
+
+if getgenv().macro.AnimationPack == true then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/maiy1993/skid/main/AnimationPack.lua.txt", true))()
+end
